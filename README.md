@@ -1,5 +1,5 @@
 ## Bounding Box Correction Tool
-![Image](path_to_your_image/bbox_demo.png)
+![Image](assets/bbox_demo.png)
 
 A Quick Flask UI To Manually Override Instance Segmentation Bounding Boxes. 
 We can then use these boxes to re-prompt the model.
