@@ -1,31 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- ... -->
-    <script>
-        window.addEventListener('load', function() {
-            var canvas = document.getElementById('imageCanvas');
-            var context = canvas.getContext('2d');
-            var image = new Image();
-            var bboxes = {{ bboxes | tojson }};
-            image.onload = function() {
-                canvas.width = image.width;
-                canvas.height = image.height;
-                context.drawImage(image, 0, 0);
-
-                // Draw bounding boxes in red
-                context.strokeStyle = 'red';
-                bboxes.forEach(function(bbox) {
-                    context.strokeRect(bbox[0], bbox[1], bbox[2], bbox[3]);
-                });
-            };
-            image.src = "{{ url_for('static', filename='images/' + '%03d' % image_index + '.png') }}";
-        });
-    </script>
 </head>
 <body>
     <h3 style="text-align:center;">
-        Segment Anything BBox Corrector
+        Bounding Box Correction Tool
     </h3>
     <div style="text-align:center;">
         Image {{ image_index }}
@@ -36,7 +15,8 @@
     </div>
     <div style="display:flex;">
         <div style="margin:auto; margin-top:15px; display: flex;">
-            <button id="addBboxButton">+ Add Bounding Box</button>
+            <button id="addBboxButton">+ Add</button>
+            <button id="remBboxButton">- Remove</button>
                 <div style="margin-left: 120px; margin-right: 120px;">{% if image_index > 0 %}
                     <a href="{{ url_for('home', image_index=image_index-1) }}" style="margin-right: 20px;">&larr;</a>
                 {% endif %}
@@ -63,6 +43,9 @@
         var context = canvas.getContext('2d');
         var image = new Image();
         var bboxes = {{ bboxes | tojson }};
+        var bboxes_temp = [];
+        var isDrawing = false;
+        var isRemoving = false;
         
         function gotoImage(imageIndex) {
             window.location.href = "{{ url_for('home', image_index=0) }}".replace('0', imageIndex);
@@ -84,20 +67,7 @@
         };
     
         image.src = "{{ url_for('static', filename='images/' + '%03d' % image_index + '.png') }}";
-    
-        canvas.addEventListener('click', function(event) {
-            var x = event.clientX - canvas.getBoundingClientRect().left;
-            var y = event.clientY - canvas.getBoundingClientRect().top;
-    
-            for (var i = bboxes.length - 1; i >= 0; i--) {
-                var bbox = bboxes[i];
-                if (x >= bbox[0] && y >= bbox[1] && x <= bbox[0] + bbox[2] && y <= bbox[1] + bbox[3]) {
-                    bboxes.splice(i, 1);
-                    drawImage();
-                    break;
-                }
-            }
-        });
+
         canvas.addEventListener('mousemove', function(event) {
             var x = event.clientX - canvas.getBoundingClientRect().left;
             var y = event.clientY - canvas.getBoundingClientRect().top;
@@ -107,17 +77,46 @@
 
             canvas.style.cursor = isOverBoundingBox ? 'pointer' : 'default';
         });
+        
         var addBboxButton = document.getElementById('addBboxButton');
-        // var isDrawing = false;
-        // var startDrawPosition = null;
-
         addBboxButton.addEventListener('click', function() {
-            isDrawing = true;
-            console.log("Drawing bbox")
-            canvas.style.cursor = 'crosshair';
+            isDrawing = !isDrawing;
+            isRemoving = false; // Make sure removing is turned off
+            updateButtonColors();
+            canvas.style.cursor = isDrawing ? 'crosshair' : 'default';
+            console.log("VARIABLES: ", isDrawing, isRemoving)
         });
 
-        var isDrawing = false;
+        var remBboxButton = document.getElementById('remBboxButton');
+        remBboxButton.addEventListener('click', function() {
+            isRemoving = !isRemoving;
+            isDrawing = false; // Make sure drawing is turned off
+            updateButtonColors();
+            canvas.style.cursor = isRemoving ? 'pointer' : 'default';
+        });
+
+        function updateButtonColors() {
+            addBboxButton.style.backgroundColor = isDrawing ? 'green' : '';
+            remBboxButton.style.backgroundColor = isRemoving ? 'green' : '';
+        }
+
+        canvas.addEventListener('click', function(event) {
+            if (isRemoving) {
+                var x = event.clientX - canvas.getBoundingClientRect().left;
+                var y = event.clientY - canvas.getBoundingClientRect().top;
+
+                for (var i = bboxes.length - 1; i >= 0; i--) {
+                    var bbox = bboxes[i];
+                    if (x >= bbox[0] && y >= bbox[1] && x <= bbox[0] + bbox[2] && y <= bbox[1] + bbox[3]) {
+                        bboxes.splice(i, 1);
+                        drawImage();
+                        break;
+                    }
+                }
+            }
+        });
+
+
         var startDrawPosition = null;
         var currentDrawPosition = null;
 
@@ -152,31 +151,25 @@
                 var x = event.clientX - canvas.getBoundingClientRect().left;
                 var y = event.clientY - canvas.getBoundingClientRect().top;
 
-                var startX = Math.min(startDrawPosition.x, x);
-                var startY = Math.min(startDrawPosition.y, y);
-                var width = Math.abs(x - startDrawPosition.x);
-                var height = Math.abs(y - startDrawPosition.y);
+                let startX = Math.min(startDrawPosition.x, x);
+                let startY = Math.min(startDrawPosition.y, y);
+                let width = Math.abs(startDrawPosition.x - x);
+                let height = Math.abs(startDrawPosition.y - y);
+
                 newEntry = [startX, startY, width, height];
                 bboxes.push(newEntry);
-                bboxes.push(newEntry);
 
-                // console.log(bboxes)
-                console.log("Amt of bboxes:", bboxes.length);
-                console.log("Start coords:", startDrawPosition.x, startDrawPosition.y);
-                console.log("Ending coords:", x, y);
-                console.log("Calculated values:", startX, startY, width, height);
-
-                isDrawing = false;
                 startDrawPosition = null;
                 currentDrawPosition = null;
+
                 drawImage();
                 canvas.style.cursor = 'default';
             }
+            console.log(isDrawing);
         });
 
         // Add an event listener to stop drawing when the cursor leaves the canvas
         canvas.addEventListener('mouseleave', function() {
-            isDrawing = false;
             startDrawPosition = null;
             currentDrawPosition = null;
             canvas.style.cursor = 'default';
