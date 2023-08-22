@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- ... -->
+    <script>
+        window.addEventListener('load', function() {
+            var canvas = document.getElementById('imageCanvas');
+            var context = canvas.getContext('2d');
+            var image = new Image();
+            var bboxes = {{ bboxes | tojson }};
+            image.onload = function() {
+                canvas.width = image.width;
+                canvas.height = image.height;
+                context.drawImage(image, 0, 0);
+
+                // Draw bounding boxes in red
+                context.strokeStyle = 'red';
+                bboxes.forEach(function(bbox) {
+                    context.strokeRect(bbox[0], bbox[1], bbox[2], bbox[3]);
+                });
+            };
+            image.src = "{{ url_for('static', filename='images/' + '%03d' % image_index + '.png') }}";
+        });
+    </script>
+</head>
+<body>
+    <canvas id="imageCanvas"></canvas>
+    <div>
+        {% if image_index > 0 %}
+            <a href="{{ url_for('home', image_index=image_index-1) }}" style="margin-right: 20px;">&larr;</a>
+        {% endif %}
+        {% if image_index < 99 %}
+            <a href="{{ url_for('home', image_index=image_index+1) }}">&rarr;</a>
+        {% endif %}
+    </div>
+    <script>
+        var canvas = document.getElementById('imageCanvas');
+        var context = canvas.getContext('2d');
+        var image = new Image();
+        var bboxes = {{ bboxes | tojson }};
+    
+        function drawImage() {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, 0, 0);
+            context.strokeStyle = 'red';
+            bboxes.forEach(function(bbox) {
+                context.strokeRect(bbox[0], bbox[1], bbox[2], bbox[3]);
+            });
+        }
+    
+        image.onload = function() {
+            canvas.width = image.width;
+            canvas.height = image.height;
+            drawImage();
+        };
+    
+        image.src = "{{ url_for('static', filename='images/' + '%03d' % image_index + '.png') }}";
+    
+        canvas.addEventListener('click', function(event) {
+            var x = event.clientX - canvas.getBoundingClientRect().left;
+            var y = event.clientY - canvas.getBoundingClientRect().top;
+    
+            for (var i = bboxes.length - 1; i >= 0; i--) {
+                var bbox = bboxes[i];
+                if (x >= bbox[0] && y >= bbox[1] && x <= bbox[0] + bbox[2] && y <= bbox[1] + bbox[3]) {
+                    bboxes.splice(i, 1);
+                    drawImage();
+                    break;
+                }
+            }
+        });
+        canvas.addEventListener('mousemove', function(event) {
+            var x = event.clientX - canvas.getBoundingClientRect().left;
+            var y = event.clientY - canvas.getBoundingClientRect().top;
+            var isOverBoundingBox = bboxes.some(function(bbox) {
+                return x >= bbox[0] && y >= bbox[1] && x <= bbox[0] + bbox[2] && y <= bbox[1] + bbox[3];
+            });
+
+            canvas.style.cursor = isOverBoundingBox ? 'pointer' : 'default';
+        });
+    </script>
+    
+</body>
+
+</html>
