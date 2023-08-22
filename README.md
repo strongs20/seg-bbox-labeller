@@ -35,6 +35,24 @@ Now, open [http://127.0.0.1:5000/](http://127.0.0.1:5000/) in your preferred web
 
 ### Navigation
 - Use the arrow icons located beneath the image to move between images, or select a specific image from the dropdown menu.
-- Click on an existing bounding box to remove it.
-- To create a new bounding box, click the "Add Bounding Box" button and drag to define the boundaries.
-- Click "Save Picture" to save the modifications made to the image.
+- Click the "+ Add" button to create new bounding boxes
+  - You are now in drawing mode. Drag new boxes on the image canvas as you please.
+  - The button will appear green.
+  - Either click this button again or click the remove button to exit drawing mode.
+- Click the "- Remove" button to remove existing bounding boxes.
+  - You are noe in removal mode. Click on a bounding box to remove it.
+  - The button will appear green.
+  - Either click this button again or click the add button to exit removal mode.
+- Click the save button to update the actual JSON file
+
+## Future Goals
+
+### Potential Avenues for Improvement
+- Bbox moving
+  - Click and drag bboxes to a different location
+- Alternative annotation modes
+  - Polygon editor
+    - Draw vertices of polygons
+  - Centroid editor
+    - Pinpoint mask centroid coordinates
+- Improve basic UI
