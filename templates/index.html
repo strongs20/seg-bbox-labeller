@@ -24,20 +24,49 @@
     </script>
 </head>
 <body>
-    <canvas id="imageCanvas"></canvas>
-    <div>
-        {% if image_index > 0 %}
-            <a href="{{ url_for('home', image_index=image_index-1) }}" style="margin-right: 20px;">&larr;</a>
-        {% endif %}
-        {% if image_index < 99 %}
-            <a href="{{ url_for('home', image_index=image_index+1) }}">&rarr;</a>
-        {% endif %}
+    <h3 style="text-align:center;">
+        Segment Anything BBox Corrector
+    </h3>
+    <div style="text-align:center;">
+        Image {{ image_index }}
+    </div>
+    
+    <div style="display:flex; margin-top:15px;">
+        <canvas id="imageCanvas" style="margin:auto; margin-bottom: none !important;"></canvas>
+    </div>
+    <div style="display:flex;">
+        <div style="margin:auto; margin-top:15px; display: flex;">
+            <button id="addBboxButton">+ Add Bounding Box</button>
+                <div style="margin-left: 120px; margin-right: 120px;">{% if image_index > 0 %}
+                    <a href="{{ url_for('home', image_index=image_index-1) }}" style="margin-right: 20px;">&larr;</a>
+                {% endif %}
+                {% if image_index < 99 %}
+                    <a href="{{ url_for('home', image_index=image_index+1) }}">&rarr;</a>
+                {% endif %}
+                &nbsp;
+                <select id="gotoImageDropdown" onchange="gotoImage(this.value)">
+                    <option value="" disabled selected>Go to Image</option>
+                    {% for i in range(100) %}
+                        <option value="{{ i }}">Image {{ i }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button id="saveButton">Save Picture</button>
+        </div>
+    </div>
+    <div style="color:gray; text-align: center; margin-top: 45px;">
+        (click on a bounding box to remove it)
     </div>
     <script>
+        var imageIndex = {{ image_index }};
         var canvas = document.getElementById('imageCanvas');
         var context = canvas.getContext('2d');
         var image = new Image();
         var bboxes = {{ bboxes | tojson }};
+        
+        function gotoImage(imageIndex) {
+            window.location.href = "{{ url_for('home', image_index=0) }}".replace('0', imageIndex);
+        }
     
         function drawImage() {
             context.clearRect(0, 0, canvas.width, canvas.height);
@@ -78,6 +107,105 @@
 
             canvas.style.cursor = isOverBoundingBox ? 'pointer' : 'default';
         });
+        var addBboxButton = document.getElementById('addBboxButton');
+        // var isDrawing = false;
+        // var startDrawPosition = null;
+
+        addBboxButton.addEventListener('click', function() {
+            isDrawing = true;
+            console.log("Drawing bbox")
+            canvas.style.cursor = 'crosshair';
+        });
+
+        var isDrawing = false;
+        var startDrawPosition = null;
+        var currentDrawPosition = null;
+
+        canvas.addEventListener('mousedown', function(event) {
+            if (isDrawing) {
+                var x = event.clientX - canvas.getBoundingClientRect().left;
+                var y = event.clientY - canvas.getBoundingClientRect().top;
+                startDrawPosition = { x: x, y: y };
+                currentDrawPosition = { x: x, y: y };
+                console.log("Starting coords:", x, y)
+            }
+        });
+
+        canvas.addEventListener('mousemove', function(event) {
+            if (isDrawing && startDrawPosition) {
+                var x = event.clientX - canvas.getBoundingClientRect().left;
+                var y = event.clientY - canvas.getBoundingClientRect().top;
+                currentDrawPosition = { x: x, y: y };
+                drawImage();
+                context.strokeStyle = 'green';
+                context.strokeRect(
+                    Math.min(startDrawPosition.x, currentDrawPosition.x),
+                    Math.min(startDrawPosition.y, currentDrawPosition.y),
+                    Math.abs(currentDrawPosition.x - startDrawPosition.x),
+                    Math.abs(currentDrawPosition.y - startDrawPosition.y)
+                );
+            }
+        });
+
+        canvas.addEventListener('mouseup', function(event) {
+            if (isDrawing && startDrawPosition && currentDrawPosition) {
+                var x = event.clientX - canvas.getBoundingClientRect().left;
+                var y = event.clientY - canvas.getBoundingClientRect().top;
+
+                var startX = Math.min(startDrawPosition.x, x);
+                var startY = Math.min(startDrawPosition.y, y);
+                var width = Math.abs(x - startDrawPosition.x);
+                var height = Math.abs(y - startDrawPosition.y);
+                newEntry = [startX, startY, width, height];
+                bboxes.push(newEntry);
+                bboxes.push(newEntry);
+
+                // console.log(bboxes)
+                console.log("Amt of bboxes:", bboxes.length);
+                console.log("Start coords:", startDrawPosition.x, startDrawPosition.y);
+                console.log("Ending coords:", x, y);
+                console.log("Calculated values:", startX, startY, width, height);
+
+                isDrawing = false;
+                startDrawPosition = null;
+                currentDrawPosition = null;
+                drawImage();
+                canvas.style.cursor = 'default';
+            }
+        });
+
+        // Add an event listener to stop drawing when the cursor leaves the canvas
+        canvas.addEventListener('mouseleave', function() {
+            isDrawing = false;
+            startDrawPosition = null;
+            currentDrawPosition = null;
+            canvas.style.cursor = 'default';
+        });
+
+
+
+        var saveButton = document.getElementById('saveButton');
+
+        saveButton.addEventListener('click', function() {
+            console.log("Save button clicked");
+            var url = '{{ url_for('save_bboxes', image_index=0) }}'.replace('0', imageIndex);
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ bboxes: bboxes }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Saved successfully!');
+                } else {
+                    alert('An error occurred while saving.');
+                }
+            });
+        });
+
     </script>
     
 </body>
