@@ -3,7 +3,7 @@ import os
 from flask import request, jsonify
 import json
 
-app = Flask(__name__, static_url_path='', static_folder=os.path.join(os.path.dirname(__file__), '..'))
+app = Flask(__name__, static_url_path='', static_folder=os.path.join(os.path.dirname(__file__), 'dataset'))
 
 @app.route('/')
 def home():
@@ -11,7 +11,7 @@ def home():
     image_index = max(0, min(99, image_index))
 
     # Load bounding boxes from the corresponding JSON file
-    json_path = os.path.join(os.path.dirname(__file__), '..', 'labels', '%03d.json' % image_index)
+    json_path = os.path.join(os.path.dirname(__file__), 'dataset', 'labels', '%03d.json' % image_index)
     with open(json_path, 'r') as file:
         labels = json.load(file)
         bboxes = labels.get('bboxes', [])
@@ -23,7 +23,7 @@ def save_bboxes(image_index):
     try:
         data = request.json
         bboxes = data['bboxes']
-        filename = os.path.join('../labels', '%03d.json' % image_index)
+        filename = os.path.join('dataset/labels', '%03d.json' % image_index)
         print(f"Saving to {filename} with bboxes {bboxes}")  # Debug print
 
         with open(filename, 'w') as file:

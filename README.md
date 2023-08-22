@@ -9,16 +9,17 @@ pip3 install json
 ```
 
 ### Project Directory Preparation
-First, organize your images and labels into the appropriate folders within the project directory. Ensure that both the images and their corresponding labels share the same filenames. For example:
+First, place your images and labels folder into a folder called "dataset" in the root of the project directory. Ensure that both the images and their corresponding labels share the same filenames. For example:
 
-- images
-  - 001.png
-  - 002.png
-  - ...
-- labels
-  - 001.json
-  - 002.json
-  - ...
+- dataset
+  - images
+    - 001.png
+    - 002.png
+    - ...
+  - labels
+    - 001.json
+    - 002.json
+    - ...
 
 ### Launching the Application
 Navigate into the project directory and start the labelling tool by executing the following commands:
